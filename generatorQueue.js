@@ -51,12 +51,9 @@ function  getNextPasswordArray(passwordArray) {
 class Queue {
 	concurrency;
 	tasks = [];
-	passwordsArray = [];
 	qSize = 0;
 	isTaskFinished = false;
-	isWorking = true;
 	result;
-
 
 	constructor(concurrency = 20) {
 		this.concurrency = concurrency;
@@ -66,36 +63,29 @@ class Queue {
 		return this.qSize === this.concurrency;
 	}
 
-	enqueue(task, password) {
+	enqueue(task) {
 			this.tasks.push(task);
-			this.passwordsArray.push(password);
 			if (!this.isFullQueue()) {
 				this.#execute();
 		}
 	}
 
 	#execute() {
-		if (this.tasks.length < 1) {
-			if (this.isWorking) {
-				iterate();
-			}
+		if (this.tasks.length < 1 || this.isTaskFinished) {
 			return;
 		}
 		this.qSize += 1;
-		this.tasks.shift().call(this, this.passwordsArray.shift()).then(
+		const shiftTask = this.tasks.shift()
+		shiftTask[0].call(this, shiftTask[1]).then(
 			(value) => {
-				this.onFulfilled(value[0], value[1]);
+				this.qSize -= 1;
+				this.result([value[0], shiftTask[1]])
+				this.#execute()
 			});
 	}
 
-	onFulfilled(value, password) {
-		if (value) {
-			this.isTaskFinished = true;
-			this.result = password;
-			return;
-		}
-		this.qSize -= 1;
-		this.#execute()
+	onFulfilled(task) {
+		this.result = task;
 	}
 
 }
@@ -104,18 +94,15 @@ const q = new Queue();
 const iterator = brute();
 
 for (let i = 0; i < q.concurrency; i++) {
-	q.enqueue(login, iterator.next().value)
+	q.enqueue([login, iterator.next().value])
 }
 
-function iterate () {
-	if (q.isTaskFinished) {
-		console.log(q.result)
-		q.isWorking = false;
+
+q.onFulfilled((result) => {
+	if (result[0]) {
+		console.log(result[1])
+		q.isTaskFinished = true;
 		return;
 	}
-	q.enqueue(login, iterator.next().value);
-}
-
-
-
-
+	q.enqueue([login, iterator.next().value]);
+})
