@@ -3,12 +3,12 @@ const allowedChars = ['a', 'b', 'c', 'd', 'e', 'f'];
 async function login(password) {
 	return new Promise((resolve) => {
 		setTimeout(() => {
-			resolve( [password === 'faf', password])
+			resolve( [password === 'ff', password])
 		},  Math.random() * 4000);
 	})
 }
 
-function* brute(maxLength = 6) {
+function* brute(maxLength = 4) {
 	for (let passwordLength = 1; passwordLength <= maxLength; passwordLength++) {
 		let passwordArray = createPasswordFromArray(passwordLength);
 		do {
@@ -104,5 +104,10 @@ q.onFulfilled((result) => {
 		q.isTaskFinished = true;
 		return;
 	}
-	q.enqueue([login, iterator.next().value]);
+	const nextValue = iterator.next(); // iterator done check
+	if (nextValue.done) {
+		console.log('Password not found')
+		return;
+	}
+	q.enqueue([login, nextValue.value]);
 })
